@@ -132,12 +132,19 @@ class NezamPezeshkiCrawler:
             # Cleans up doctor name which may contain extra newlines/spaces/invalid characters
             raw_doctor_name = td_doc[1].a.get_text(strip=True)
             name_parts = [part.strip() for part in re.split(r'[\r\n]+', raw_doctor_name) if part.strip()]
-            
+
+            try:
+                WorkProvince, WorkCity = td_doc[4].a.get_text(strip=True).split('-')
+            except Exception:
+                WorkCity, WorkProvince = 'نامشخص', "نامشخص"
             # Saving each doctor's info in a dictionary
             doc_cache['Fullname'] = ' '.join(name_parts)
             doc_cache['Nezam'] = td_doc[2].a.get_text(strip=True)
             doc_cache['Specialty'] = td_doc[3].a.get_text(strip=True).split('|')[0]
             doc_cache['City'] = city_name
+            doc_cache['AuthorizedCity'] = city_name
+            doc_cache['WorkCity'] = WorkCity
+            doc_cache['WorkProvince'] = WorkProvince
             doc_cache['Membership'] = td_doc[5].a.get_text(strip=True)
 
             # Adding each doctor's info to the global accumulator! 
