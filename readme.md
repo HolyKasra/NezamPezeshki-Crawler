@@ -27,19 +27,26 @@ This project has below dependencies
 
 ## 💡 Example Usage 
 ```python
-
 import pandas as pd
 from pyscraper import NezamPezeshkiCrawler
+all_radiologists = []
 
 with NezamPezeshkiCrawler() as crawler:
-    # Example: Get all radiologists in Mazandaran province
-    doctors_data = crawler.scrape(
-        province_name="مازندران", 
-        specialty_name="تخصص تصویربرداری (رادیولوژی)"
-    )
 
-    # Save to pandas dataframe!
-    data = pd.json_normalize(doctors_data)
-    # Saving Dataset
-    data.drop_duplicates(subset="Nezam").to_excel('Radiologists.xlsx', index=False)
+    provinces_mappings = crawler._get_mapping(nth_child=3)
+    # Example: Get all radiologists in Mazandaran province
+
+    for province in provinces_mappings.keys():
+        doctors_data = crawler.scrape(
+            province_name=province, 
+            specialty_name="تخصص تصویربرداری (رادیولوژی)"
+        )
+
+        # Saving Doctors From All Provinces
+        all_radiologists.extend([*doctors_data])
+
+# Saving doctors data to a dataframe
+df = pd.json_normalize(all_radiologists)
+# Exporting Data as an excel file
+df.drop_duplicates(subset="Nezam").to_excel('Radiologists.xlsx', index=False)
 ```
