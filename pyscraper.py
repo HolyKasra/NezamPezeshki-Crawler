@@ -27,9 +27,6 @@ class NezamPezeshkiCrawler:
         self.provinces_url: str = self.parent_url + 'directory'
         self.driver = webdriver.Chrome()
 
-        # Accumulator to save all pieces of information (dictionary) for each doctor
-        self.doctors_list: list = []
-
     def __enter__(self):
         """Allows the class to be used as a context manager."""
         return self
@@ -188,6 +185,9 @@ class NezamPezeshkiCrawler:
         """
         self.specialty_name = specialty_name
 
+        # We make the doctors_list empty for each province iteration
+        self.doctors_list = []
+
         # Process Begins...
         print(f"🔍 Starting scrape for province '{province_name}' and specialty '{specialty_name}'...")
         
@@ -209,21 +209,29 @@ class NezamPezeshkiCrawler:
                 print(f"❌  Specialty not found in {city_name}.")
         
         # Process Ends...
-        print(f"\n✅ Scraping complete. Found {len(self.doctors_list)} doctors.")
+        print(f"✅ Scraping complete. Found {len(self.doctors_list)} doctors.")
         return self.doctors_list.copy()
 
 
 if __name__ == '__main__':
     import pandas as pd
+    all_radiologists = []
 
     with NezamPezeshkiCrawler() as crawler:
-        # Example: Get all radiologists in Mazandaran province
-        doctors_data = crawler.scrape(
-            province_name="مازندران", 
-            specialty_name="تخصص تصویربرداری (رادیولوژی)"
-        )
 
-        # Save to pandas dataframe!
-        data = pd.json_normalize(doctors_data)
-        # Saving Dataset
-        data.drop_duplicates(subset="Nezam").to_excel('DoctorsList.xlsx', index=False)
+        provinces_mappings = crawler._get_mapping(nth_child=3)
+        # Example: Get all radiologists in Mazandaran province
+
+        for province in provinces_mappings.keys():
+            doctors_data = crawler.scrape(
+                province_name=province, 
+                specialty_name="تخصص تصویربرداری (رادیولوژی)"
+            )
+
+            # Saving Doctors From All Provinces
+            all_radiologists.extend([*doctors_data])
+
+    # Saving doctors data to a dataframe
+    df = pd.json_normalize(all_radiologists)
+    # Exporting Data as an excel file
+    df.drop_duplicates(subset="Nezam").to_excel('Radiologists.xlsx', index=False)
