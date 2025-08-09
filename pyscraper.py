@@ -1,7 +1,9 @@
 
+from __future__ import annotations
 import re
 import requests
 from selenium import webdriver
+import functools
 from bs4 import BeautifulSoup
 from typing import List, Dict, Optional
 from selenium.webdriver.common.by import By
@@ -15,7 +17,7 @@ class NezamPezeshkiCrawler:
     This class handles navigation through provinces, cities, and specialties
     to collect data about doctors based on specified criteria.
     """
-    def __init__(self, parent_url: str = 'https://membersearch.irimc.org/', headless=True):
+    def __init__(self, parent_url: str = 'https://membersearch.irimc.org/', headless=False):
         """
         Initializes the crawler and the Selenium webdriver.
         
@@ -23,19 +25,25 @@ class NezamPezeshkiCrawler:
             parent_url (str): Medical Council Website Address (Iran)
         """
         self.parent_url: str = parent_url
-        options = None
         self.provinces_url: str = self.parent_url + 'directory'
-        self.driver = webdriver.Chrome()
 
-    def __enter__(self):
+        # Initializing the webdriver
+        options = webdriver.ChromeOptions()
+        if headless:
+            options.add_argument('headless')
+            options.add_argument('disable-gpu')
+            
+        self.driver = webdriver.Chrome(options=options)
+
+    def __enter__(self) -> NezamPezeshkiCrawler:
         """Allows the class to be used as a context manager."""
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         """Ensures the webdriver is closed upon exiting the context!"""
         self.close()
     
-    def close(self):
+    def close(self) -> None:
         """Closes and quits the webdriver to free up resources."""
         if self.driver:
             print("Shutting down webdriver...")
@@ -139,7 +147,7 @@ class NezamPezeshkiCrawler:
             doc_cache['Nezam'] = td_doc[2].a.get_text(strip=True)
             doc_cache['Specialty'] = td_doc[3].a.get_text(strip=True).split('|')[0]
             doc_cache['City'] = city_name
-            doc_cache['AuthorizedCity'] = city_name
+            # doc_cache['AuthorizedCity'] = city_name
             doc_cache['WorkCity'] = WorkCity
             doc_cache['WorkProvince'] = WorkProvince
             doc_cache['Membership'] = td_doc[5].a.get_text(strip=True)
@@ -179,12 +187,11 @@ class NezamPezeshkiCrawler:
 
     def scrape(self, province_name: str, specialty_name: str)-> List[Dict]:
         """
-        
         Main funtion of the class. it triggers the scraping job!
 
-        """
+        """  
         self.specialty_name = specialty_name
-
+        
         # We make the doctors_list empty for each province iteration
         self.doctors_list = []
 
@@ -196,7 +203,7 @@ class NezamPezeshkiCrawler:
 
         cities_mapping = self._get_mapping(page_link=province_link, nth_child=2)
         for city_name, city_link in cities_mapping.items():
-
+        
             print(f"✅  Processing city: {city_name}")
 
             # Searching withing each city and scrape all of the doctors
@@ -208,8 +215,9 @@ class NezamPezeshkiCrawler:
             else:
                 print(f"❌  Specialty not found in {city_name}.")
         
-        # Process Ends...
-        print(f"✅ Scraping complete. Found {len(self.doctors_list)} doctors.")
+        # Process Ends
+        print(f"\n✅ Scraping complete. Found {len(self.doctors_list)} doctors.")
+        print('--'*50)
         return self.doctors_list.copy()
 
 
